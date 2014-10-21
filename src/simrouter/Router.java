@@ -5,6 +5,8 @@
  */
 package simrouter;
 
+import java.net.*;
+
 /**
  *
  * @author บักคุณท่าน เพ้ง อิอิ
@@ -116,10 +118,17 @@ public class Router extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTextPane pingStatus;
     // End of variables declaration//GEN-END:variables
-    private class ServerRouter extends Thread{
-        public ServerRouter(){
-            java.net.ServerSocket rdServer;
-            
-        }
+    ServerSocket server;
+
+    void serverRouter() {
+
+    }
+
+    void sent() {
+
+    }
+
+    void receive() {
+
     }
 }
