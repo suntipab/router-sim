@@ -7,9 +7,8 @@ package simrouter;
 
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.*;
+import java.util.logging.*;
 import javax.swing.*;
 
 /**
@@ -21,9 +20,15 @@ public class Remote extends javax.swing.JFrame {
     /**
      * Creates new form routersimulator
      */
+    String[] remote = new String[255];
+
     public Remote() throws IOException {
         startRemote();
         initComponents();
+        remote[0] = "start";
+        remote[1] = comName.getText();
+        remote[2] = ip2byte + "";
+        send(remote);
     }
 
     /**
@@ -49,7 +54,7 @@ public class Remote extends javax.swing.JFrame {
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         setPing = new javax.swing.JComboBox();
-        jTextField1 = new javax.swing.JTextField();
+        comMGS = new javax.swing.JTextField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -63,30 +68,23 @@ public class Remote extends javax.swing.JFrame {
 
         jLabel7.setText("MAC Address");
 
-        try{
-            comName.setText(Inet4Address.getLocalHost().getHostName());
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, "Error: " + ex.getMessage(), "Alert", JOptionPane.ERROR_MESSAGE);
-            System.exit(0);
+        char[] chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTWXYZ".toCharArray();
+        StringBuilder sb = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < 5; i++) {
+            char c = chars[random.nextInt(chars.length)];
+            sb.append(c);
         }
+        String output = sb.toString();
+        comName.setText(output);
 
-        try{
-            InetAddress localHost = Inet4Address.getLocalHost();
-            NetworkInterface networkInterface = NetworkInterface.getByInetAddress(localHost);
-            comNetMark.setText(networkInterface.getInterfaceAddresses().get(0).getNetworkPrefixLength() + "");
-        } catch (Exception ex) {
-        }
+        comNetMark.setText("255.255.255.0");
 
-        try{
-            comIP.setText(Inet4Address.getLocalHost().getHostAddress());
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, "Error: " + ex.getMessage(), "Alert", JOptionPane.ERROR_MESSAGE);
-            System.exit(0);
-        }
+        comIP.setText("192.168.0." + ip2byte);
 
         try{
             byte[] mac = NetworkInterface.getByInetAddress(InetAddress.getLocalHost()).getHardwareAddress();
-            StringBuilder sb = new StringBuilder();
+            sb = new StringBuilder();
             for (int i = 0; i < mac.length; i++) {
                 sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
             }
@@ -105,7 +103,7 @@ public class Remote extends javax.swing.JFrame {
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                             .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 75, Short.MAX_VALUE))
+                            .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, 75, Short.MAX_VALUE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(comName, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -142,6 +140,11 @@ public class Remote extends javax.swing.JFrame {
         jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createEtchedBorder()));
 
         bnPing.setLabel("PING");
+        bnPing.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                bnPingActionPerformed(evt);
+            }
+        });
 
         jLabel1.setText("PING");
 
@@ -169,7 +172,7 @@ public class Remote extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(setPing, 0, 113, Short.MAX_VALUE)
-                            .addComponent(jTextField1))))
+                            .addComponent(comMGS))))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
@@ -184,7 +187,7 @@ public class Remote extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(comMGS, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(55, Short.MAX_VALUE))
         );
 
@@ -215,6 +218,15 @@ public class Remote extends javax.swing.JFrame {
     private void setPingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_setPingActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_setPingActionPerformed
+
+    private void bnPingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_bnPingActionPerformed
+        remote[0] = "ping";
+        remote[1] = comName.getText();
+        remote[2] = comIP.getText();
+        remote[3] = setPing.getSelectedItem().toString();
+        remote[4] = comMGS.getText();
+        send(remote);
+    }//GEN-LAST:event_bnPingActionPerformed
 
     /**
      * @param args the command line arguments
@@ -259,6 +271,7 @@ public class Remote extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton bnPing;
     private javax.swing.JLabel comIP;
+    private javax.swing.JTextField comMGS;
     private javax.swing.JLabel comMac;
     private javax.swing.JLabel comName;
     private javax.swing.JLabel comNetMark;
@@ -270,124 +283,51 @@ public class Remote extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
-    private javax.swing.JTextField jTextField1;
     private javax.swing.JComboBox setPing;
     // End of variables declaration//GEN-END:variables
-boolean connected = true;
-Socket socket;
-String local;
-public int state = 0;
-public ArrayList<DataPackage> others = new ArrayList<DataPackage>();
-public void startRemote() throws IOException{
-    String ip = (String) JOptionPane.showInputDialog(null, "IP: ", "Info", JOptionPane.INFORMATION_MESSAGE, null, null, local);
-    socket = new Socket(ip, 8080);
-    new Thread(send).start();
-    new Thread(receive).start();
-}
 
-    Runnable send = new Runnable()
-	{
-		@Override
-		public void run()
-		{
-			ObjectOutputStream oos;
-			
-			while (connected)
-			{
-				if (socket != null)
-				{
-					try
-					{
-						DataPackage dp = new DataPackage();
-						dp.ip = comIP.getText();
-						dp.host = comName.getText();
-						dp.mac = comMac.getText();
-						
-						oos = new ObjectOutputStream(socket.getOutputStream());
-						oos.writeObject(state);
-						
-						oos = new ObjectOutputStream(socket.getOutputStream());
-						oos.writeObject(dp);
-						
-						if (state == 1) // Client Disconnected
-						{
-							connected = false;
-							socket = null;
-							
-							JOptionPane.showMessageDialog(null, "Client Disconnected", "Info", JOptionPane.INFORMATION_MESSAGE);
-							System.exit(0);
-						}
-					}
-					catch (Exception ex) {}
-				}
-				else
-				{
-					break;
-				}
-			}
-		}
-	};
-	
-	
-	
-	Runnable receive = new Runnable()
-	{
-		@Override
-		public void run()
-		{
-			ObjectInputStream ois;
-			
-			while (connected)
-			{
-				try
-				{
-					ois = new ObjectInputStream(socket.getInputStream());
-					int receive_state = (Integer) ois.readObject();
-					
-					if (receive_state == 1) // Kicked / Disconnected by Server
-					{
-						connected = false;
-						socket = null;
-						
-						JOptionPane.showMessageDialog(null, "Disconnected by Server", "Info", JOptionPane.INFORMATION_MESSAGE);
-						System.exit(0);
-					}
-					else if (receive_state == 2) // Server Disconnected
-					{
-						connected = false;
-						socket = null;
-						
-						JOptionPane.showMessageDialog(null, "Server Disconnected", "Info", JOptionPane.INFORMATION_MESSAGE);
-						System.exit(0);
-					}
-					
-					ois = new ObjectInputStream(socket.getInputStream());
-					ArrayList<DataPackage> list_data = (ArrayList<DataPackage>) ois.readObject();
-					
-					for (int i = 0; i < list_data.size(); i++)
-					{
-						DataPackage dp = list_data.get(i);
-						
-						if (list_data.size() != others.size())
-						{
-							if (list_data.size() > others.size())
-							{
-								others.add(dp);
-							}
-							
-							if (list_data.size() < others.size())
-							{
-								others.remove(0);
-							}
-						}
-						else
-						{
-							others.set(i, dp);
-						}
-					}
-				}
-				catch (Exception ex) {}
-			}
-		}
-	};
+    Socket socket;
+    int ip2byte;
+
+    public void startRemote() throws IOException {
+        Random random = new Random();
+        for (;;) {
+            ip2byte = random.nextInt(255);
+            if (ip2byte != 0) {
+                break;
+            }
+        }
+        String ip = (String) JOptionPane.showInputDialog(null, "IP: ", "Info", JOptionPane.INFORMATION_MESSAGE, null, null, null);
+        socket = new Socket(ip, 1519);
+        new Thread(receive).start();
+    }
+
+    public void send(String[] string) {
+        ObjectOutputStream oos;
+        if (socket != null) {
+            try {
+                oos = new ObjectOutputStream(socket.getOutputStream());
+                oos.writeObject(string);
+            } catch (Exception ex) {
+                Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    Runnable receive = new Runnable() {
+        @Override
+        public void run() {
+            ObjectInputStream ois;
+
+            while (true) {
+                try {
+                    ois = new ObjectInputStream(socket.getInputStream());
+                    int receive_state = (Integer) ois.readObject();
+
+                    ois = new ObjectInputStream(socket.getInputStream());
+                } catch (Exception ex) {
+                }
+            }
+        }
+    };
 }
