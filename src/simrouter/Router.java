@@ -5,7 +5,11 @@
  */
 package simrouter;
 
+import java.io.*;
 import java.net.*;
+import java.util.*;
+import java.util.logging.*;
+import javax.swing.*;
 
 /**
  *
@@ -16,8 +20,9 @@ public class Router extends javax.swing.JFrame {
     /**
      * Creates new form remote
      */
-    public Router() {
+    public Router() throws InterruptedException {
         initComponents();
+        serverRouterStart();
     }
 
     /**
@@ -30,16 +35,17 @@ public class Router extends javax.swing.JFrame {
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
-        jScrollPane2 = new javax.swing.JScrollPane();
-        pingStatus = new javax.swing.JTextPane();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        pingStatus = new javax.swing.JTextArea();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("STATUS"));
 
         pingStatus.setEditable(false);
-        pingStatus.setFont(new java.awt.Font("Comic Sans MS", 0, 12)); // NOI18N
-        jScrollPane2.setViewportView(pingStatus);
+        pingStatus.setColumns(20);
+        pingStatus.setRows(5);
+        jScrollPane1.setViewportView(pingStatus);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -47,13 +53,13 @@ public class Router extends javax.swing.JFrame {
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 533, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 533, Short.MAX_VALUE)
                 .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 244, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 244, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
@@ -108,27 +114,147 @@ public class Router extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new Router().setVisible(true);
+                try {
+                    new Router().setVisible(true);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JTextPane pingStatus;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTextArea pingStatus;
     // End of variables declaration//GEN-END:variables
-    ServerSocket server;
 
-    void serverRouter() {
-
+    ServerSocket serverRouter;
+    int portServer = 8080;
+    public ArrayList<Socket> list_sockets = new ArrayList<Socket>();
+    public ArrayList<Integer> list_client_states = new ArrayList<Integer>();
+    public ArrayList<DataPackage> list_data = new ArrayList<DataPackage>();
+    public DefaultListModel list_clients_model;
+    void serverRouterStart() {
+        try {
+            serverRouter = new ServerSocket(portServer);
+            pingStatus.append("Start \n");
+        } catch (IOException ex) {
+            Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        new Thread(accept).start();
     }
+    private Runnable accept = new Runnable() {
+        @Override
+        public void run() {
+            new Thread(send).start();
+            new Thread(receive).start();
+            pingStatus.append("Run server \n");
+            while (true) {
+                try {
+                    Socket socket = serverRouter.accept();
 
-    void sent() {
+                    ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 
-    }
+                    String username = (String) ois.readObject();
 
-    void receive() {
+                    boolean accepted = true;
 
+                    for (int i = 0; i < list_data.size(); i++) {
+                        if (list_data.get(i).host.toLowerCase().equals(username.toLowerCase())) {
+                            accepted = false;
+                            break;
+                        }
+                    }
+
+                    ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+
+                    if (accepted) {
+                        oos.writeObject("Welcome To This Server...");
+
+                        list_clients_model.addElement(username + " - " + socket.getInetAddress().getHostAddress() + " - " + socket.getInetAddress().getHostName());
+                        list_client_states.add(0);
+
+                        list_data.add(new DataPackage());
+                        list_sockets.add(socket);
+                    } else {
+                        oos.writeObject("Your name is already taken!");
+                    }
+                } catch (Exception ex) {
+                }
+            }
+        }
+    };
+
+    private Runnable send = new Runnable() {
+        @Override
+        public void run() {
+            ObjectOutputStream oos;
+
+            while (true) {
+                for (int i = 0; i < list_sockets.size(); i++) {
+                    try {
+                        oos = new ObjectOutputStream(list_sockets.get(i).getOutputStream());
+                        int client_state = list_client_states.get(i);
+                        oos.writeObject(client_state);
+
+                        oos = new ObjectOutputStream(list_sockets.get(i).getOutputStream());
+                        oos.writeObject(list_data);
+
+                        if (client_state == 1) // Kicked by Server
+                        {
+                            disconnectClient(i);
+                            i--;
+                        } else if (client_state == 2) // Server Disconnected
+                        {
+                            disconnectClient(i);
+                            i--;
+                        }
+                    } catch (Exception ex) {
+                    }
+                }
+            }
+        }
+    };
+
+    private Runnable receive = new Runnable() {
+        @Override
+        public void run() {
+            ObjectInputStream ois;
+
+            while (true) {
+                for (int i = 0; i < list_sockets.size(); i++) {
+                    try {
+                        ois = new ObjectInputStream(list_sockets.get(i).getInputStream());
+                        int receive_state = (Integer) ois.readObject();
+
+                        ois = new ObjectInputStream(list_sockets.get(i).getInputStream());
+                        DataPackage dp = (DataPackage) ois.readObject();
+
+                        list_data.set(i, dp);
+
+                        if (receive_state == 1) // Client Disconnected by User
+                        {
+                            disconnectClient(i);
+                            i--;
+                        }
+                    } catch (Exception ex) // Client Disconnected (Client Didn't Notify Server About Disconnecting)
+                    {
+                        disconnectClient(i);
+                        i--;
+                    }
+                }
+            }
+        }
+    };
+
+    public void disconnectClient(int index) {
+        try {
+            list_clients_model.removeElementAt(index);
+            list_client_states.remove(index);
+            list_data.remove(index);
+            list_sockets.remove(index);
+        } catch (Exception ex) {
+        }
     }
 }

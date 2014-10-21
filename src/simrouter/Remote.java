@@ -7,6 +7,9 @@ package simrouter;
 
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.*;
 
 /**
@@ -18,7 +21,8 @@ public class Remote extends javax.swing.JFrame {
     /**
      * Creates new form routersimulator
      */
-    public Remote() {
+    public Remote() throws IOException {
+        startRemote();
         initComponents();
     }
 
@@ -101,7 +105,7 @@ public class Remote extends javax.swing.JFrame {
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                             .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, 75, Short.MAX_VALUE))
+                            .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 75, Short.MAX_VALUE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(comName, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -132,7 +136,7 @@ public class Remote extends javax.swing.JFrame {
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(comMac))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(28, Short.MAX_VALUE))
         );
 
         jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createEtchedBorder()));
@@ -243,7 +247,11 @@ public class Remote extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new Remote().setVisible(true);
+                try {
+                    new Remote().setVisible(true);
+                } catch (IOException ex) {
+                    Logger.getLogger(Remote.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         });
     }
@@ -265,4 +273,121 @@ public class Remote extends javax.swing.JFrame {
     private javax.swing.JTextField jTextField1;
     private javax.swing.JComboBox setPing;
     // End of variables declaration//GEN-END:variables
+boolean connected = true;
+Socket socket;
+String local;
+public int state = 0;
+public ArrayList<DataPackage> others = new ArrayList<DataPackage>();
+public void startRemote() throws IOException{
+    String ip = (String) JOptionPane.showInputDialog(null, "IP: ", "Info", JOptionPane.INFORMATION_MESSAGE, null, null, local);
+    socket = new Socket(ip, 8080);
+    new Thread(send).start();
+    new Thread(receive).start();
+}
+
+    Runnable send = new Runnable()
+	{
+		@Override
+		public void run()
+		{
+			ObjectOutputStream oos;
+			
+			while (connected)
+			{
+				if (socket != null)
+				{
+					try
+					{
+						DataPackage dp = new DataPackage();
+						dp.ip = comIP.getText();
+						dp.host = comName.getText();
+						dp.mac = comMac.getText();
+						
+						oos = new ObjectOutputStream(socket.getOutputStream());
+						oos.writeObject(state);
+						
+						oos = new ObjectOutputStream(socket.getOutputStream());
+						oos.writeObject(dp);
+						
+						if (state == 1) // Client Disconnected
+						{
+							connected = false;
+							socket = null;
+							
+							JOptionPane.showMessageDialog(null, "Client Disconnected", "Info", JOptionPane.INFORMATION_MESSAGE);
+							System.exit(0);
+						}
+					}
+					catch (Exception ex) {}
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+	};
+	
+	
+	
+	Runnable receive = new Runnable()
+	{
+		@Override
+		public void run()
+		{
+			ObjectInputStream ois;
+			
+			while (connected)
+			{
+				try
+				{
+					ois = new ObjectInputStream(socket.getInputStream());
+					int receive_state = (Integer) ois.readObject();
+					
+					if (receive_state == 1) // Kicked / Disconnected by Server
+					{
+						connected = false;
+						socket = null;
+						
+						JOptionPane.showMessageDialog(null, "Disconnected by Server", "Info", JOptionPane.INFORMATION_MESSAGE);
+						System.exit(0);
+					}
+					else if (receive_state == 2) // Server Disconnected
+					{
+						connected = false;
+						socket = null;
+						
+						JOptionPane.showMessageDialog(null, "Server Disconnected", "Info", JOptionPane.INFORMATION_MESSAGE);
+						System.exit(0);
+					}
+					
+					ois = new ObjectInputStream(socket.getInputStream());
+					ArrayList<DataPackage> list_data = (ArrayList<DataPackage>) ois.readObject();
+					
+					for (int i = 0; i < list_data.size(); i++)
+					{
+						DataPackage dp = list_data.get(i);
+						
+						if (list_data.size() != others.size())
+						{
+							if (list_data.size() > others.size())
+							{
+								others.add(dp);
+							}
+							
+							if (list_data.size() < others.size())
+							{
+								others.remove(0);
+							}
+						}
+						else
+						{
+							others.set(i, dp);
+						}
+					}
+				}
+				catch (Exception ex) {}
+			}
+		}
+	};
 }
