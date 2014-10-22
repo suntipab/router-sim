@@ -150,7 +150,6 @@ public class Router extends javax.swing.JFrame {
                 try {
                     Socket socket = serverRouter.accept();
                     receive(socket);
-                    pingStatus.append("Accept\n");
                     //list_com.add(new String[2]);
                     //list_sockets.add(socket);
                 } catch (Exception ex) {
@@ -160,33 +159,19 @@ public class Router extends javax.swing.JFrame {
         }
     };
 
-    public void send() {
+    public void send(Socket socket) {
         ObjectOutputStream oos;
-
-        while (true) {
-            for (int i = 0; i < list_sockets.size(); i++) {
+        String[] out = new String[list_com.size()];
+        for(int i = 0;i<=list_com.size();i++) out[i]=(list_com.get(i))[0];
                 try {
-                    oos = new ObjectOutputStream(list_sockets.get(i).getOutputStream());
-                    int client_state = list_client_states.get(i);
-                    oos.writeObject(client_state);
-
-                    oos = new ObjectOutputStream(list_sockets.get(i).getOutputStream());
+                    oos = new ObjectOutputStream(socket.getOutputStream());
                     oos.writeObject(list_com);
-
-                    if (client_state == 1) // Kicked by Server
-                    {
-                        disconnectClient(i);
-                        i--;
-                    } else if (client_state == 2) // Server Disconnected
-                    {
-                        disconnectClient(i);
-                        i--;
-                    }
                 } catch (Exception ex) {
+                System.out.print("asdfasdfsdaf\n");
                 }
             }
-        }
-    }
+        
+    
 
     void receive(Socket socket) {
         new Thread(() -> {
@@ -200,12 +185,13 @@ public class Router extends javax.swing.JFrame {
                     dp = (String[]) ois.readObject();
                     switch (dp[0]) {
                         case "start":
+                            list_com.add(new String[]{dp[1],dp[2]});
+                            send(socket);
                             break;
                         case "ping":
                             pingStatus.append("Source IP address: " + dp[2] + "\n");
                             pingStatus.append("Detination IP address: " + dp[3] + "\n");
                             pingStatus.append("MGS: " + dp[4] + "\n");
-                            pingStatus.append(pingStatus.getRows() + "");
                             break;
 
                     }

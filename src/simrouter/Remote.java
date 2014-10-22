@@ -27,7 +27,7 @@ public class Remote extends javax.swing.JFrame {
         initComponents();
         remote[0] = "start";
         remote[1] = comName.getText();
-        remote[2] = ip2byte + "";
+        remote[2] = comIP.getText();
         send(remote);
     }
 
@@ -108,7 +108,7 @@ public class Remote extends javax.swing.JFrame {
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                             .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, 75, Short.MAX_VALUE))
+                            .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 75, Short.MAX_VALUE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(comName, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -158,7 +158,7 @@ public class Remote extends javax.swing.JFrame {
 
         jLabel2.setText("MGS");
 
-        setPing.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "PC1", "PC2", "PC3" }));
+        setPing.setToolTipText("");
         setPing.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 setPingActionPerformed(evt);
@@ -317,18 +317,8 @@ public class Remote extends javax.swing.JFrame {
             }
         }
     }
-
+public ArrayList<String[]> list_com = new ArrayList<>();
     Runnable receive = () -> {
         ObjectInputStream ois;
-
-        while (true) {
-            try {
-                ois = new ObjectInputStream(socket.getInputStream());
-                int receive_state = (Integer) ois.readObject();
-
-                ois = new ObjectInputStream(socket.getInputStream());
-            } catch (IOException | ClassNotFoundException ex) {
-            }
-        }
     };
 }
