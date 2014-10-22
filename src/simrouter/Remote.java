@@ -10,6 +10,7 @@ import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 import javax.swing.*;
+import javax.swing.event.ListDataListener;
 
 /**
  *
@@ -20,11 +21,12 @@ public class Remote extends javax.swing.JFrame {
     /**
      * Creates new form routersimulator
      */
-    String[] remote = new String[255];
+    String[] remote;
 
     public Remote() throws IOException {
         startRemote();
         initComponents();
+        remote = new String[3];
         remote[0] = "start";
         remote[1] = comName.getText();
         remote[2] = comIP.getText();
@@ -228,6 +230,7 @@ public class Remote extends javax.swing.JFrame {
     }//GEN-LAST:event_setPingActionPerformed
 
     private void bnPingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_bnPingActionPerformed
+        remote = new String[5];
         remote[0] = "ping";
         remote[1] = comName.getText();
         remote[2] = comIP.getText();
@@ -317,8 +320,21 @@ public class Remote extends javax.swing.JFrame {
             }
         }
     }
-public ArrayList<String[]> list_com = new ArrayList<>();
+    public String[] list_com;
     Runnable receive = () -> {
         ObjectInputStream ois;
+
+        while (true) {
+            try {
+                ois = new ObjectInputStream(socket.getInputStream());
+                list_com = (String[]) ois.readObject();
+                setPing.removeAllItems();
+                for (int i = 0; i < list_com.length; i++) {
+                    setPing.addItem(list_com[i]);
+                }
+            } catch (IOException | ClassNotFoundException ex) {
+                Logger.getLogger(Remote.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     };
 }

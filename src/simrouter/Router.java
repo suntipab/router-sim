@@ -6,6 +6,7 @@
 package simrouter;
 
 import java.io.*;
+import static java.lang.System.exit;
 import java.net.*;
 import java.util.*;
 import java.util.logging.*;
@@ -136,7 +137,8 @@ public class Router extends javax.swing.JFrame {
             serverRouter = new ServerSocket(portServer);
             new Thread(accept).start();
         } catch (IOException ex) {
-            Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, "Port ถูกใช้งานอยู่", "เชื่อมต่อไม่ได้", WIDTH);
+            exit(0);
         }
 
     }
@@ -150,8 +152,7 @@ public class Router extends javax.swing.JFrame {
                 try {
                     Socket socket = serverRouter.accept();
                     receive(socket);
-                    //list_com.add(new String[2]);
-                    //list_sockets.add(socket);
+                    list_sockets.add(socket);
                 } catch (Exception ex) {
                     Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -159,88 +160,94 @@ public class Router extends javax.swing.JFrame {
         }
     };
 
-    public void send(Socket socket) {
+    public void send() {
         ObjectOutputStream oos;
         String[] out = new String[list_com.size()];
-        for(int i = 0;i<=list_com.size();i++) out[i]=(list_com.get(i))[0];
-                try {
-                    oos = new ObjectOutputStream(socket.getOutputStream());
-                    oos.writeObject(list_com);
-                } catch (Exception ex) {
-                System.out.print("asdfasdfsdaf\n");
-                }
-            }
-        
-    
+        for (int i = 0; i < list_com.size(); i++) {
+            String[] outin = list_com.get(i);
+            out[i] = outin[0];
+        }
+        for (int i = 0; i < list_sockets.size(); i++) {
+            try {
+                oos = new ObjectOutputStream(list_sockets.get(i).getOutputStream());
+                oos.writeObject(out);
+            } catch (Exception ex) {
 
+                disconnectClient(i);
+            }
+        }
+    }
+    Queue queueRemove = new LinkedList();
     void receive(Socket socket) {
         new Thread(() -> {
             ObjectInputStream ois;
             String[] dp;
-            System.out.print("re");
+            String pcName = null;
             while (true) {
                 try {
-                    System.out.print("re");
                     ois = new ObjectInputStream(socket.getInputStream());
                     dp = (String[]) ois.readObject();
+                    StringBuilder sb;
                     switch (dp[0]) {
                         case "start":
-                            list_com.add(new String[]{dp[1],dp[2]});
-                            send(socket);
+                            pcName = dp[1];
+                            list_com.add(new String[]{pcName, dp[2]});
+                            send();
                             break;
                         case "ping":
-                            pingStatus.append("Source IP address: " + dp[2] + "\n");
-                            pingStatus.append("Detination IP address: " + dp[3] + "\n");
-                            pingStatus.append("MGS: " + dp[4] + "\n");
+                            sb = new StringBuilder();
+                            sb.append("Source IP address: ").append(dp[2]).append("\n");
+                            for (int i = 0; i < list_com.size(); i++) {
+                                if (dp[3].equals((list_com.get(i))[0])) {
+                                    sb.append("Detination IP address: ").append((list_com.get(i))[1]).append("\n");
+                                    break;
+                                }
+                            }
+                            if (!dp[4].equals("")) {
+                                sb.append("MGS: ").append(dp[4]).append("\n");
+                            }
+                            pingStatus.append(sb.toString());
+                            queueRemove.add(sb.toString().length());
+                            new Thread(() -> {
+                        try {
+                            Thread.sleep(5000);
+                            pingStatus.replaceRange(null, 0, (int) queueRemove.remove());
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                            }).start();
                             break;
-
                     }
 
                 } catch (IOException | ClassNotFoundException ex) // Client Disconnected (Client Didn't Notify Server About Disconnecting)
                 {
-                                    //disconnectClient(i);
-                    //i--;
+                    disconnectClient(pcName);
+                    break;
                 }
             }
 
         }).start();
     }
 
-    private Runnable receive = () -> {
-        ObjectInputStream ois;
-        String[] dp;
-        System.out.print("re");
-        while (true) {
-            for (int i = 0; i < list_sockets.size(); i++) {
-                try {
-                    System.out.print("re");
-                    ois = new ObjectInputStream(list_sockets.get(i).getInputStream());
-                    dp = (String[]) ois.readObject();
-                    switch (dp[0]) {
-                        case "start":
-                            break;
-                        case "ping":
-                            pingStatus.append("Source IP address: " + dp[2] + "\n");
-                            pingStatus.append("Detination IP address: " + dp[3] + "\n");
-                            pingStatus.append("MGS: " + dp[4] + "\n");
-                            pingStatus.append(pingStatus.getRows() + "");
-                            break;
-
-                    }
-
-                } catch (IOException | ClassNotFoundException ex) // Client Disconnected (Client Didn't Notify Server About Disconnecting)
-                {
-                    disconnectClient(i);
-                    i--;
-                }
-            }
-        }
-    };
-
     public void disconnectClient(int index) {
         try {
-            (list_com.get(0))[0].indexOf("dsfsdf");
+            list_com.remove(index);
             list_sockets.remove(index);
+            send();
+        } catch (Exception ex) {
+            Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public void disconnectClient(String pcName) {
+        try {
+            for (int i = 0; i < list_com.size(); i++) {
+                if (pcName.equals((list_com.get(i))[0])) {
+                    list_com.remove(i);
+                    list_sockets.remove(i);
+                    send();
+                }
+            }
         } catch (Exception ex) {
             Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
         }
