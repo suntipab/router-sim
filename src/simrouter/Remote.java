@@ -49,6 +49,7 @@ public class Remote extends javax.swing.JFrame {
         comNetMark = new javax.swing.JLabel();
         comIP = new javax.swing.JLabel();
         comMac = new javax.swing.JLabel();
+        label1 = new java.awt.Label();
         jPanel2 = new javax.swing.JPanel();
         bnPing = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
@@ -92,12 +93,16 @@ public class Remote extends javax.swing.JFrame {
         } catch (Exception ex) {
         }
 
+        label1.setText("label1");
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(156, 156, 156)
+                .addContainerGap()
+                .addComponent(label1, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(6, 6, 6)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
@@ -135,6 +140,9 @@ public class Remote extends javax.swing.JFrame {
                     .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(comMac))
                 .addContainerGap(28, Short.MAX_VALUE))
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addComponent(label1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createEtchedBorder()));
@@ -244,26 +252,21 @@ public class Remote extends javax.swing.JFrame {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Remote.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Remote.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Remote.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(Remote.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
         //</editor-fold>
 
+        //</editor-fold>
+        //</editor-fold>
+
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    new Remote().setVisible(true);
-                } catch (IOException ex) {
-                    Logger.getLogger(Remote.class.getName()).log(Level.SEVERE, null, ex);
-                }
+        java.awt.EventQueue.invokeLater(() -> {
+            try {
+                new Remote().setVisible(true);
+            } catch (IOException ex) {
+                Logger.getLogger(Remote.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
     }
@@ -283,13 +286,14 @@ public class Remote extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private java.awt.Label label1;
     private javax.swing.JComboBox setPing;
     // End of variables declaration//GEN-END:variables
 
     Socket socket;
     int ip2byte;
 
-    public void startRemote() throws IOException {
+    private void startRemote() throws IOException {
         Random random = new Random();
         for (;;) {
             ip2byte = random.nextInt(255);
@@ -302,7 +306,7 @@ public class Remote extends javax.swing.JFrame {
         new Thread(receive).start();
     }
 
-    public void send(String[] string) {
+    private void send(String[] string) {
         ObjectOutputStream oos;
         if (socket != null) {
             try {
@@ -314,19 +318,16 @@ public class Remote extends javax.swing.JFrame {
         }
     }
 
-    Runnable receive = new Runnable() {
-        @Override
-        public void run() {
-            ObjectInputStream ois;
+    Runnable receive = () -> {
+        ObjectInputStream ois;
 
-            while (true) {
-                try {
-                    ois = new ObjectInputStream(socket.getInputStream());
-                    int receive_state = (Integer) ois.readObject();
+        while (true) {
+            try {
+                ois = new ObjectInputStream(socket.getInputStream());
+                int receive_state = (Integer) ois.readObject();
 
-                    ois = new ObjectInputStream(socket.getInputStream());
-                } catch (Exception ex) {
-                }
+                ois = new ObjectInputStream(socket.getInputStream());
+            } catch (IOException | ClassNotFoundException ex) {
             }
         }
     };

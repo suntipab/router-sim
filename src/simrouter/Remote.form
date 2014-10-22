@@ -63,7 +63,9 @@
         <DimensionLayout dim="0">
           <Group type="103" groupAlignment="0" attributes="0">
               <Group type="102" attributes="0">
-                  <EmptySpace min="-2" pref="156" max="-2" attributes="0"/>
+                  <EmptySpace max="-2" attributes="0"/>
+                  <Component id="label1" min="-2" pref="140" max="-2" attributes="0"/>
+                  <EmptySpace min="-2" pref="6" max="-2" attributes="0"/>
                   <Group type="103" groupAlignment="1" attributes="0">
                       <Group type="102" alignment="1" attributes="0">
                           <Group type="103" groupAlignment="1" max="-2" attributes="0">
@@ -112,6 +114,10 @@
                       <Component id="comMac" alignment="3" min="-2" max="-2" attributes="0"/>
                   </Group>
                   <EmptySpace pref="28" max="32767" attributes="0"/>
+              </Group>
+              <Group type="102" alignment="0" attributes="0">
+                  <Component id="label1" max="32767" attributes="0"/>
+                  <EmptySpace max="-2" attributes="0"/>
               </Group>
           </Group>
         </DimensionLayout>
@@ -169,6 +175,11 @@
             <AuxValue name="JavaCodeGenerator_InitCodePost" type="java.lang.String" value="} catch (Exception ex) {&#xa;        }"/>
             <AuxValue name="JavaCodeGenerator_InitCodePre" type="java.lang.String" value="try{&#xa;byte[] mac = NetworkInterface.getByInetAddress(InetAddress.getLocalHost()).getHardwareAddress();&#xa;sb = new StringBuilder();&#xa;        for (int i = 0; i &lt; mac.length; i++) {&#xa;          sb.append(String.format(&quot;%02X%s&quot;, mac[i], (i &lt; mac.length - 1) ? &quot;-&quot; : &quot;&quot;));&#xa;        }"/>
           </AuxValues>
+        </Component>
+        <Component class="java.awt.Label" name="label1">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="label1"/>
+          </Properties>
         </Component>
       </SubComponents>
     </Container>

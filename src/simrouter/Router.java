@@ -19,6 +19,8 @@ public class Router extends javax.swing.JFrame {
 
     /**
      * Creates new form remote
+     *
+     * @throws java.lang.InterruptedException
      */
     public Router() throws InterruptedException {
         initComponents();
@@ -42,6 +44,7 @@ public class Router extends javax.swing.JFrame {
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("STATUS"));
 
+        pingStatus.setEditable(false);
         pingStatus.setColumns(20);
         pingStatus.setRows(5);
         jScrollPane2.setViewportView(pingStatus);
@@ -106,13 +109,11 @@ public class Router extends javax.swing.JFrame {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    new Router().setVisible(true);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
-                }
+        java.awt.EventQueue.invokeLater(() -> {
+            try {
+                new Router().setVisible(true);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
     }
@@ -125,30 +126,33 @@ public class Router extends javax.swing.JFrame {
 
     ServerSocket serverRouter;
     int portServer = 1519;
-    public ArrayList<Socket> list_sockets = new ArrayList<Socket>();
-    public ArrayList<Integer> list_client_states = new ArrayList<Integer>();
-    public ArrayList<String[]> list_com = new ArrayList<String[]>();
+    public ArrayList<Socket> list_sockets = new ArrayList<>();
+    public ArrayList<Integer> list_client_states = new ArrayList<>();
+    public ArrayList<String[]> list_com = new ArrayList<>();
     public DefaultListModel list_clients_model;
 
-    void serverRouterStart() {
+    private void serverRouterStart() {
         try {
             serverRouter = new ServerSocket(portServer);
+            new Thread(accept).start();
         } catch (IOException ex) {
             Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
         }
-        new Thread(accept).start();
+
     }
     private Runnable accept = new Runnable() {
+
         @Override
         public void run() {
             //new Thread(send).start();
-            new Thread(receive).start();
+            //new Thread(receive).start();
             while (true) {
                 try {
                     Socket socket = serverRouter.accept();
-
-                    list_com.add(new String[2]);
-                    list_sockets.add(socket);
+                    receive(socket);
+                    pingStatus.append("Accept\n");
+                    //list_com.add(new String[2]);
+                    //list_sockets.add(socket);
                 } catch (Exception ex) {
                     Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -184,30 +188,64 @@ public class Router extends javax.swing.JFrame {
         }
     }
 
-    private Runnable receive = new Runnable() {
-        @Override
-        public void run() {
+    void receive(Socket socket) {
+        new Thread(() -> {
             ObjectInputStream ois;
             String[] dp;
+            System.out.print("re");
             while (true) {
-                for (int i = 0; i < list_sockets.size(); i++) {
-                    try {
-                        ois = new ObjectInputStream(list_sockets.get(i).getInputStream());
-                        dp = (String[]) ois.readObject();
-                        if (dp[0].equals("start")) {
-                            System.out.print(dp[0]);
-                        } else if (dp[0].equals("ping")) {
-                            
+                try {
+                    System.out.print("re");
+                    ois = new ObjectInputStream(socket.getInputStream());
+                    dp = (String[]) ois.readObject();
+                    switch (dp[0]) {
+                        case "start":
+                            break;
+                        case "ping":
                             pingStatus.append("Source IP address: " + dp[2] + "\n");
                             pingStatus.append("Detination IP address: " + dp[3] + "\n");
                             pingStatus.append("MGS: " + dp[4] + "\n");
-                            pingStatus.append(pingStatus.getRows()+"");
-                        }
-                    } catch (Exception ex) // Client Disconnected (Client Didn't Notify Server About Disconnecting)
-                    {
-                        disconnectClient(i);
-                        i--;
+                            pingStatus.append(pingStatus.getRows() + "");
+                            break;
+
                     }
+
+                } catch (IOException | ClassNotFoundException ex) // Client Disconnected (Client Didn't Notify Server About Disconnecting)
+                {
+                                    //disconnectClient(i);
+                    //i--;
+                }
+            }
+
+        }).start();
+    }
+
+    private Runnable receive = () -> {
+        ObjectInputStream ois;
+        String[] dp;
+        System.out.print("re");
+        while (true) {
+            for (int i = 0; i < list_sockets.size(); i++) {
+                try {
+                    System.out.print("re");
+                    ois = new ObjectInputStream(list_sockets.get(i).getInputStream());
+                    dp = (String[]) ois.readObject();
+                    switch (dp[0]) {
+                        case "start":
+                            break;
+                        case "ping":
+                            pingStatus.append("Source IP address: " + dp[2] + "\n");
+                            pingStatus.append("Detination IP address: " + dp[3] + "\n");
+                            pingStatus.append("MGS: " + dp[4] + "\n");
+                            pingStatus.append(pingStatus.getRows() + "");
+                            break;
+
+                    }
+
+                } catch (IOException | ClassNotFoundException ex) // Client Disconnected (Client Didn't Notify Server About Disconnecting)
+                {
+                    disconnectClient(i);
+                    i--;
                 }
             }
         }
@@ -215,7 +253,7 @@ public class Router extends javax.swing.JFrame {
 
     public void disconnectClient(int index) {
         try {
-            list_com.remove(index);
+            (list_com.get(0))[0].indexOf("dsfsdf");
             list_sockets.remove(index);
         } catch (Exception ex) {
             Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
